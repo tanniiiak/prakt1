@@ -1,49 +1,65 @@
 """
-Эмулятор оболочки ОС. Этап 1: REPL.
-Вариант №14.
-
-Реализует минимальный прототип командной строки UNIX-подобной ОС:
-- приглашение вида user@host:~$
-- парсер команд по пробелам
-- заглушки ls и cd
-- обработка ошибок (неизвестная команда, неверные аргументы)
-- команда exit
+Эмулятор оболочки ОС. Вариант №14.
+Этап 1: REPL.
+Этап 2: конфигурация (CLI: --vfs и --script).
 """
 
+import os
 import getpass
 import socket
+import argparse
+import json
+
+
+
+def parse_args():
+    """Парсер аргументов командной строки."""
+    parser = argparse.ArgumentParser(
+        description="Эмулятор оболочки ОС. Вариант №14."
+    )
+    parser.add_argument("--vfs", type=str, default=None,
+                        help="Путь к файлу VFS (JSON)")
+    parser.add_argument("--script", type=str, default=None,
+                        help="Путь к стартовому скрипту")
+    return parser.parse_args()
+
+
+
+def load_vfs(path):
+    """Загружает VFS из JSON. При ошибке — None."""
+    if path is None:
+        return None
+    if not os.path.exists(path):
+        print(f"Ошибка: файл VFS '{path}' не найден.")
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"Ошибка: неверный формат JSON в VFS: {e}")
+        return None
+
 
 
 def get_prompt():
-    """
-    Формируем приглашение вида user@host:~$.
-    Использует реальные данные ОС: имя пользователя и имя хоста.
-    """
+    """Приглашение вида user@host:~$."""
     user = getpass.getuser()
     host = socket.gethostname()
     return f"{user}@{host}:~$ "
 
 
-def execute_command(command, args):
-    """
-    Выполняет одну команду.
-    Возвращает строку 'exit', если нужно завершить работу эмулятора.
-    Иначе возвращает None.
-    """
+
+def execute_command(command, args, vfs):
+    """Выполняет команду. Возвращает 'exit' для выхода."""
     if command == "exit":
         print("Выход из эмулятора...")
         return "exit"
 
     elif command == "ls":
-        # Заглушка ls. Принимает 0 или больше аргументов.
         print(f"Команда: {command}")
-        if args:
-            print(f"Аргументы: {args}")
-        else:
-            print("Аргументы: нет")
+        print(f"Аргументы: {args}" if args else "Аргументы: нет")
 
     elif command == "cd":
-        # Заглушка cd. Должна принимать ровно 1 аргумент (путь).
         print(f"Команда: {command}")
         if len(args) == 0:
             print("Ошибка: cd требует один аргумент (путь)")
@@ -52,41 +68,87 @@ def execute_command(command, args):
         else:
             print(f"Аргументы: {args}")
 
+    elif command == "vfs":
+        if vfs is None:
+            print("VFS не загружена.")
+        else:
+            print(json.dumps(vfs, ensure_ascii=False, indent=2))
+
     else:
         print(f"Ошибка: команда '{command}' не найдена.")
 
     return None
 
 
-def main():
-    """Точка входа. Запускает REPL-цикл."""
-    print("--- Запуск эмулятора оболочки (Вариант 14) ---")
+def run_interactive(vfs):
+    """Интерактивный режим REPL."""
     print("Введите 'exit' для выхода.\n")
-
     while True:
         try:
             user_input = input(get_prompt())
-
-            # Пропускаем пустые строки (только пробелы/Enter)
             if not user_input.strip():
                 continue
-
-            # Парсер: разделяем по пробелам
             parts = user_input.split()
             command = parts[0]
             args = parts[1:]
-
-            # Выполняем команду
-            result = execute_command(command, args)
+            result = execute_command(command, args, vfs)
             if result == "exit":
                 break
-
         except KeyboardInterrupt:
-            # Ctrl+C — корректный выход
             print("\nЗавершение работы (Ctrl+C).")
             break
-        except Exception as e:
-            print(f"Непредвиденная ошибка: {e}")
+
+
+def run_script(script_path, vfs):
+    """Запускает стартовый скрипт. Ошибочные строки пропускает."""
+    if not os.path.exists(script_path):
+        print(f"Ошибка: скрипт '{script_path}' не найден.")
+        return
+
+    try:
+        with open(script_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except Exception as e:
+        print(f"Ошибка чтения скрипта: {e}")
+        return
+
+    print(f"Выполнение стартового скрипта: {script_path}")
+    print("-" * 40)
+
+    prompt = get_prompt()
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        # Эхо: показываем приглашение + команду
+        print(f"{prompt}{stripped}")
+
+        parts = stripped.split()
+        command = parts[0]
+        args = parts[1:]
+
+        result = execute_command(command, args, vfs)
+        if result == "exit":
+            break
+
+
+def main():
+    args = parse_args()
+
+    print("--- Запуск эмулятора оболочки (Вариант 14) ---")
+    print("Параметры запуска:")
+    print(f"  VFS:    {args.vfs if args.vfs else '(не задан)'}")
+    print(f"  Script: {args.script if args.script else '(не задан)'}")
+    print()
+
+    vfs = load_vfs(args.vfs)
+
+    if args.script:
+        run_script(args.script, vfs)
+    else:
+        run_interactive(vfs)
 
 
 if __name__ == "__main__":

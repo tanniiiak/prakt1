@@ -1,0 +1,10 @@
+ls
+
+ls -l /home
+cd documents
+
+vfs
+
+hello
+
+exit
