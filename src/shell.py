@@ -1,9 +1,3 @@
-"""
-Эмулятор оболочки ОС. Вариант №14.
-Этап 1: REPL.
-Этап 2: конфигурация (CLI: --vfs и --script).
-"""
-
 import os
 import getpass
 import socket
@@ -13,7 +7,6 @@ import json
 
 
 def parse_args():
-    """Парсер аргументов командной строки."""
     parser = argparse.ArgumentParser(
         description="Эмулятор оболочки ОС. Вариант №14."
     )
@@ -26,7 +19,6 @@ def parse_args():
 
 
 def load_vfs(path):
-    """Загружает VFS из JSON. При ошибке — None."""
     if path is None:
         return None
     if not os.path.exists(path):
@@ -42,7 +34,6 @@ def load_vfs(path):
 
 
 def get_prompt():
-    """Приглашение вида user@host:~$."""
     user = getpass.getuser()
     host = socket.gethostname()
     return f"{user}@{host}:~$ "
@@ -50,7 +41,6 @@ def get_prompt():
 
 
 def execute_command(command, args, vfs):
-    """Выполняет команду. Возвращает 'exit' для выхода."""
     if command == "exit":
         print("Выход из эмулятора...")
         return "exit"
@@ -81,7 +71,6 @@ def execute_command(command, args, vfs):
 
 
 def run_interactive(vfs):
-    """Интерактивный режим REPL."""
     print("Введите 'exit' для выхода.\n")
     while True:
         try:
@@ -100,7 +89,6 @@ def run_interactive(vfs):
 
 
 def run_script(script_path, vfs):
-    """Запускает стартовый скрипт. Ошибочные строки пропускает."""
     if not os.path.exists(script_path):
         print(f"Ошибка: скрипт '{script_path}' не найден.")
         return
@@ -122,7 +110,6 @@ def run_script(script_path, vfs):
         if not stripped:
             continue
 
-        # Эхо: показываем приглашение + команду
         print(f"{prompt}{stripped}")
 
         parts = stripped.split()
